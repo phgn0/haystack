@@ -220,12 +220,18 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 index_params={"index_type": self.index_type, "metric_type": self.metric_type, "params": index_param},
             )
 
-        collection.load()
+        all_partitions = [p.name for p in collection.partitions]
+        collection.load(all_partitions)
 
         return collection
 
     def _create_document_field_map(self) -> Dict:
         return {self.index: self.embedding_field}
+
+    def create_partition_if_not_exists(self, partition: str):
+        if not self.collection.has_partition(partition):
+            self.collection.create_partition(partition)
+            self.collection.load([partition])
 
     def write_documents(
         self,
@@ -235,6 +241,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
         duplicate_documents: Optional[str] = None,
         headers: Optional[Dict[str, str]] = None,
         index_param: Optional[Dict[str, Any]] = None,
+        partition: Optional[str] = None,
     ):
         """
         Add new documents to the DocumentStore.
@@ -303,7 +310,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                         existing_docs = super().get_documents_by_id(ids=doc_ids, index=index)
                         self._delete_vector_ids_from_milvus(documents=existing_docs, index=index)
 
-                    mutation_result = self.collection.insert([embeddings])
+                    mutation_result = self.collection.insert([embeddings], partition_name=partition)
 
                 docs_to_write_in_sql = []
 
@@ -329,6 +336,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
         batch_size: int = 10_000,
         update_existing_embeddings: bool = True,
         filters: Optional[Dict[str, Any]] = None,  # TODO: Adapt type once we allow extended filters in Milvus2DocStore
+        partition: Optional[str] = None,
     ):
         """
         Updates the embeddings in the the document store using the encoding model specified in the retriever.
@@ -374,7 +382,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 embeddings_list = [embedding.tolist() for embedding in embeddings]
                 assert len(document_batch) == len(embeddings_list)
 
-                mutation_result = self.collection.insert([embeddings_list])
+                mutation_result = self.collection.insert([embeddings_list], partition_name=partition)
 
                 vector_id_map = {}
                 for vector_id, doc in zip(mutation_result.primary_keys, document_batch):
@@ -396,6 +404,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
         return_embedding: Optional[bool] = None,
         headers: Optional[Dict[str, str]] = None,
         scale_score: bool = True,
+        partition: Optional[str] = None,
     ) -> List[Document]:
         """
         Find the document that is most similar to the provided `query_emb` by using a vector similarity metric.
@@ -426,11 +435,14 @@ class Milvus2DocumentStore(SQLDocumentStore):
         if self.cosine:
             query_emb = query_emb / np.linalg.norm(query_emb)
 
+        partition = filters.get("partition")
+
         search_result: QueryResult = self.collection.search(
             data=[query_emb.tolist()],
             anns_field=self.embedding_field,
             param={"metric_type": self.metric_type, **self.search_param},
             limit=top_k,
+            partition_names=[partition] if partition else None,
         )
 
         vector_ids_for_query = []
