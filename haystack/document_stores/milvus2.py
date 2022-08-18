@@ -231,7 +231,14 @@ class Milvus2DocumentStore(SQLDocumentStore):
     def create_partition_if_not_exists(self, partition: str):
         if not self.collection.has_partition(partition):
             self.collection.create_partition(partition)
-            self.collection.load([partition])
+
+            # need to load all partitions at once. this may cause a short search downtime.
+            # see https://milvus.io/docs/v2.1.x/load_partition.md#Constraints
+            self.collection.release()
+            all_partitions = [p.name for p in self.collection.partitions]
+            self.collection.load(all_partitions)
+
+            # self.collection.load([partition])
 
     def write_documents(
         self,
