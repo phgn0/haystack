@@ -220,7 +220,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 index_params={"index_type": self.index_type, "metric_type": self.metric_type, "params": index_param},
             )
 
-        self.collection.release()
+        collection.release()
         all_partitions = [p.name for p in collection.partitions]
         collection.load(all_partitions)
 
