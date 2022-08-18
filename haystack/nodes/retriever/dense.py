@@ -8,6 +8,7 @@ from requests.exceptions import HTTPError
 import numpy as np
 from tqdm.auto import tqdm
 
+import time
 import torch
 from torch.nn import DataParallel
 from torch.utils.data.sampler import SequentialSampler
@@ -1772,11 +1773,15 @@ class EmbeddingRetriever(BaseRetriever):
         :param texts: Queries to embed
         :return: Embeddings, one per input queries
         """
+        time_start = time.time()
         # for backward compatibility: cast pure str input
         if isinstance(texts, str):
             texts = [texts]
         assert isinstance(texts, list), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
-        return self.embedding_encoder.embed_queries(texts)
+
+        embeddings = self.embedding_encoder.embed_queries(texts)
+        print(f"Embedded query in {ceil((time.time() - time_start) * 100)}ms")
+        return embeddings
 
     def embed_documents(self, docs: List[Document]) -> List[np.ndarray]:
         """

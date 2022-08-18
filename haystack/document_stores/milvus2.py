@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Union
 
+import time
 import logging
 import warnings
 import numpy as np
@@ -434,6 +435,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                             Otherwise raw similarity scores (e.g. cosine or dot_product) will be used.
         :return:
         """
+        time_start = time.time()
         if headers:
             raise NotImplementedError("Milvus2DocumentStore does not support headers.")
 
@@ -476,6 +478,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 score = self.scale_to_unit_interval(score, self.similarity)
             doc.score = score
 
+        print(f"Retrieved {len(documents)} documents in {ceil((time.time() - time_start) * 100)}ms")
         return documents
 
     def delete_documents(

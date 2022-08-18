@@ -2,6 +2,7 @@ from typing import List, Optional, Union, Tuple, Iterator, Any
 import logging
 from pathlib import Path
 
+import time
 import torch
 from torch.nn import DataParallel
 from tqdm.auto import tqdm
@@ -110,6 +111,7 @@ class SentenceTransformersRanker(BaseRanker):
         :param top_k: The maximum number of documents to return
         :return: List of Document
         """
+        time_start = time.time()
         if top_k is None:
             top_k = self.top_k
 
@@ -140,6 +142,7 @@ class SentenceTransformersRanker(BaseRanker):
         # add normalized scores to documents
         sorted_documents = self._add_scores_to_documents(sorted_scores_and_documents[:top_k], logits_dim)
 
+        print(f"Ranked {len(sorted_documents)} documents in {ceil((time.time() - time_start) * 100)}ms")
         return sorted_documents
 
     def _add_scores_to_documents(
@@ -194,6 +197,7 @@ class SentenceTransformersRanker(BaseRanker):
         :param top_k: The maximum number of documents to return per Document list.
         :param batch_size: Number of Documents to process at a time.
         """
+        print('predict_batch')
         if top_k is None:
             top_k = self.top_k
 
@@ -306,4 +310,4 @@ class SentenceTransformersRanker(BaseRanker):
             return
         else:
             for index in range(0, len(all_queries), batch_size):
-                yield all_queries[index : index + batch_size], all_docs[index : index + batch_size]
+                yield all_queries[index: index + batch_size], all_docs[index: index + batch_size]
