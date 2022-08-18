@@ -220,9 +220,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 index_params={"index_type": self.index_type, "metric_type": self.metric_type, "params": index_param},
             )
 
-        collection.release()
-        all_partitions = [p.name for p in collection.partitions]
-        collection.load(all_partitions)
+        self.reload_all_partitions(collection)
 
         return collection
 
@@ -235,11 +233,19 @@ class Milvus2DocumentStore(SQLDocumentStore):
 
             # need to load all partitions at once. this may cause a short search downtime.
             # see https://milvus.io/docs/v2.1.x/load_partition.md#Constraints
-            self.collection.release()
-            all_partitions = [p.name for p in self.collection.partitions]
-            self.collection.load(all_partitions)
+            self.reload_all_partitions(self.collection)
 
             # self.collection.load([partition])
+
+    def reload_all_partitions(self, collection):
+        try:
+            collection.release()
+        except:
+            # collection may not be loaded
+            pass
+
+        all_partitions = [p.name for p in collection.partitions]
+        collection.load(all_partitions)
 
     def write_documents(
         self,
