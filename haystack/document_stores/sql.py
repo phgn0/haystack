@@ -20,6 +20,7 @@ try:
         JSON,
         ForeignKeyConstraint,
     )
+    from sqlalchemy.pool import NullPool
     from sqlalchemy.ext.declarative import declarative_base
     from sqlalchemy.orm import relationship, sessionmaker, validates
     from sqlalchemy.sql import case, null
@@ -146,7 +147,9 @@ class SQLDocumentStore(BaseDocumentStore):
         """
         super().__init__()
 
-        create_engine_params = {}
+        create_engine_params = {
+            "poolclass": NullPool
+        }
         if isolation_level:
             create_engine_params["isolation_level"] = isolation_level
         if "sqlite" in url:
@@ -195,7 +198,7 @@ class SQLDocumentStore(BaseDocumentStore):
         documents = []
         for i in range(0, len(ids), batch_size):
             query = self.session.query(DocumentORM).filter(
-                DocumentORM.id.in_(ids[i : i + batch_size]), DocumentORM.index == index
+                DocumentORM.id.in_(ids[i: i + batch_size]), DocumentORM.index == index
             )
             for row in query.all():
                 documents.append(self._convert_sql_row_to_document(row))
@@ -209,7 +212,7 @@ class SQLDocumentStore(BaseDocumentStore):
         documents = []
         for i in range(0, len(vector_ids), batch_size):
             query = self.session.query(DocumentORM).filter(
-                DocumentORM.vector_id.in_(vector_ids[i : i + batch_size]), DocumentORM.index == index
+                DocumentORM.vector_id.in_(vector_ids[i: i + batch_size]), DocumentORM.index == index
             )
             for row in query.all():
                 documents.append(self._convert_sql_row_to_document(row))
@@ -394,7 +397,7 @@ class SQLDocumentStore(BaseDocumentStore):
         )
         for i in range(0, len(document_objects), batch_size):
             docs_orm = []
-            for doc in document_objects[i : i + batch_size]:
+            for doc in document_objects[i: i + batch_size]:
                 meta_fields = doc.meta or {}
                 vector_id = meta_fields.pop("vector_id", None)
                 meta_orms = []
