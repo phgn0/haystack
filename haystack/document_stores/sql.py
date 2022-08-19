@@ -532,6 +532,7 @@ class SQLDocumentStore(BaseDocumentStore):
         index: Optional[str] = None,
         only_documents_without_embedding: bool = False,
         headers: Optional[Dict[str, str]] = None,
+        partition: Optional[str] = None,
     ) -> int:
         """
         Return the number of documents in the document store.
@@ -541,6 +542,11 @@ class SQLDocumentStore(BaseDocumentStore):
 
         index = index or self.index
         query = self.session.query(DocumentORM).filter_by(index=index)
+
+        if partition:
+            if not filters:
+                filters = {}
+            filters = dict(filters, **{'partition': [partition]})
 
         if filters:
             for key, values in filters.items():

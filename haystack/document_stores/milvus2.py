@@ -376,7 +376,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 filters = {}
             filters = dict(filters, **{'partition': [partition]})
 
-        document_count = self.get_document_count(index=index, filters=filters)
+        document_count = self.get_document_count(index=index, partition=partition)
         if document_count == 0:
             logger.warning("Calling DocumentStore.update_embeddings() on an empty index")
             return
