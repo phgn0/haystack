@@ -371,10 +371,11 @@ class Milvus2DocumentStore(SQLDocumentStore):
         """
         index = index or self.index
 
+        # different filter format here than
         if partition:
             if not filters:
                 filters = {}
-            filters = dict(filters, **{'partition': {'$eq': partition}})
+            filters = dict(filters, **{'partition': [partition]})
 
         document_count = self.get_document_count(index=index, filters=filters)
         if document_count == 0:
@@ -509,7 +510,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
         if partition:
             if not filters:
                 filters = {}
-            filters = dict(filters, **{'partition': {'$eq': partition}})
+            filters = dict(filters, **{'partition': [partition]})
 
         if ids:
             self._delete_vector_ids_from_milvus(ids=ids, index=index)
