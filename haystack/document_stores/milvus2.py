@@ -371,7 +371,12 @@ class Milvus2DocumentStore(SQLDocumentStore):
         """
         index = index or self.index
 
-        document_count = self.get_document_count(index=index)
+        if partition:
+            if not filters:
+                filters = {}
+            filters = dict(filters, **{'partition': {'$eq': partition}})
+
+        document_count = self.get_document_count(index=index, filters=filters)
         if document_count == 0:
             logger.warning("Calling DocumentStore.update_embeddings() on an empty index")
             return
@@ -489,6 +494,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
         filters: Optional[Dict[str, Any]] = None,  # TODO: Adapt type once we allow extended filters in Milvus2DocStore
         headers: Optional[Dict[str, str]] = None,
         batch_size: int = 10_000,
+        partition: Optional[str] = None
     ):
         """
         Delete all documents (from SQL AND Milvus).
@@ -499,6 +505,11 @@ class Milvus2DocumentStore(SQLDocumentStore):
         """
         if headers:
             raise NotImplementedError("Milvus2DocumentStore does not support headers.")
+
+        if partition:
+            if not filters:
+                filters = {}
+            filters = dict(filters, **{'partition': {'$eq': partition}})
 
         if ids:
             self._delete_vector_ids_from_milvus(ids=ids, index=index)
