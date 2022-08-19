@@ -1,5 +1,6 @@
 from typing import Any, Dict, Union, List, Optional, Generator
 
+import os
 import logging
 import itertools
 from uuid import uuid4
@@ -147,9 +148,11 @@ class SQLDocumentStore(BaseDocumentStore):
         """
         super().__init__()
 
-        create_engine_params = {
-            "poolclass": NullPool
-        }
+        create_engine_params = {}
+        # TODO is this still required?
+        if os.getenv("IS_GEVENT"):
+            create_engine_params["poolclass"] = NullPool
+
         if isolation_level:
             create_engine_params["isolation_level"] = isolation_level
         if "sqlite" in url:
