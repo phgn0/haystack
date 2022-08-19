@@ -371,7 +371,6 @@ class Milvus2DocumentStore(SQLDocumentStore):
         """
         index = index or self.index
 
-        # different filter format here than
         if partition:
             if not filters:
                 filters = {}
@@ -699,10 +698,16 @@ class Milvus2DocumentStore(SQLDocumentStore):
 
         self.collection.delete(expr)
 
-    def get_embedding_count(self, index: Optional[str] = None, filters: Optional[Dict[str, List[str]]] = None) -> int:
+    def get_embedding_count(self, index: Optional[str] = None, filters: Optional[Dict[str, List[str]]] = None, partition: Optional[str] = None) -> int:
         """
         Return the count of embeddings in the document store.
         """
         if filters:
             raise Exception("filters are not supported for get_embedding_count in MilvusDocumentStore.")
-        return len(self.get_all_documents(index=index))
+
+        if partition:
+            if not filters:
+                filters = {}
+            filters = dict(filters, **{'partition': [partition]})
+
+        return len(self.get_all_documents(index=index, filters=filters))
