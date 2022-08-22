@@ -326,7 +326,8 @@ class Milvus2DocumentStore(SQLDocumentStore):
                         existing_docs = super().get_documents_by_id(ids=doc_ids, index=index)
                         self._delete_vector_ids_from_milvus(documents=existing_docs, index=index)
 
-                    mutation_result = self.collection.insert([embeddings], partition_name=partition)
+                    is_article = [bool(doc.meta.get("is_article", False)) for doc in document_batch]
+                    mutation_result = self.collection.insert([embeddings, is_article], partition_name=partition)
 
                 docs_to_write_in_sql = []
 
@@ -403,7 +404,8 @@ class Milvus2DocumentStore(SQLDocumentStore):
                 embeddings_list = [embedding.tolist() for embedding in embeddings]
                 assert len(document_batch) == len(embeddings_list)
 
-                mutation_result = self.collection.insert([embeddings_list], partition_name=partition)
+                is_article = [bool(doc.meta.get("is_article", False)) for doc in document_batch]
+                mutation_result = self.collection.insert([embeddings_list, is_article], partition_name=partition)
 
                 vector_id_map = {}
                 for vector_id, doc in zip(mutation_result.primary_keys, document_batch):
@@ -458,6 +460,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
             query_emb = query_emb / np.linalg.norm(query_emb)
 
         partition = filters.get("partition")
+        filter_expr = filters.get("filter_expr")
 
         search_result: QueryResult = self.collection.search(
             data=[query_emb.tolist()],
@@ -465,6 +468,7 @@ class Milvus2DocumentStore(SQLDocumentStore):
             param={"metric_type": self.metric_type, **self.search_param},
             limit=top_k,
             partition_names=[partition] if partition else None,
+            expr=filter_expr
         )
 
         vector_ids_for_query = []
@@ -694,8 +698,10 @@ class Milvus2DocumentStore(SQLDocumentStore):
             docs = super().get_documents_by_id(ids=ids, index=index)
             ids = [doc.meta["vector_id"] for doc in docs if "vector_id" in doc.meta]
 
+        if not ids:
+            return
+        
         expr = f"{self.id_field} in [{','.join(ids)}]"
-
         self.collection.delete(expr)
 
     def get_embedding_count(self, index: Optional[str] = None, filters: Optional[Dict[str, List[str]]] = None, partition: Optional[str] = None) -> int:
