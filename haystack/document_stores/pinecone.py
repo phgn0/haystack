@@ -503,7 +503,7 @@ class PineconeDocumentStore(BaseDocumentStore):
                     metadata.append({"content": doc.content, **doc.meta})
                     ids.append(doc.id)
 
-                if not ids or not embeddings:
+                if not ids:
                     continue
 
                 # Update existing vectors in pinecone index
