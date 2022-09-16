@@ -360,7 +360,7 @@ class PineconeDocumentStore(BaseDocumentStore):
                 total=len(document_objects), disable=not self.progress_bar, position=0, desc="Writing Documents"
             ) as progress_bar:
                 for i in range(0, len(document_objects), batch_size):
-                    document_batch = document_objects[i : i + batch_size]
+                    document_batch = document_objects[i: i + batch_size]
                     ids = [doc.id for doc in document_batch]
                     # If duplicate_documents set to skip or fail, we need to check for existing documents
                     if duplicate_documents in ["skip", "fail"]:
@@ -394,9 +394,9 @@ class PineconeDocumentStore(BaseDocumentStore):
                             elif duplicate_documents == "fail":
                                 # Otherwise, we raise an error
                                 raise DuplicateDocumentError(f"Duplicate document IDs found in batch: {ids}")
-                    metadata = [{"content": doc.content, **doc.meta} for doc in document_objects[i : i + batch_size]]
+                    metadata = [{"content": doc.content, **doc.meta} for doc in document_objects[i: i + batch_size]]
                     if add_vectors:
-                        embeddings = [doc.embedding for doc in document_objects[i : i + batch_size]]
+                        embeddings = [doc.embedding for doc in document_objects[i: i + batch_size]]
                         embeddings_to_index = np.array(embeddings, dtype="float32")
                         if self.similarity == "cosine":
                             # Normalize embeddings inplace
@@ -502,6 +502,10 @@ class PineconeDocumentStore(BaseDocumentStore):
                 for doc in document_batch:
                     metadata.append({"content": doc.content, **doc.meta})
                     ids.append(doc.id)
+
+                if not ids or not embeddings:
+                    continue
+
                 # Update existing vectors in pinecone index
                 self.pinecone_indexes[index].upsert(
                     vectors=zip(ids, embeddings, metadata), namespace=self.embedding_namespace
