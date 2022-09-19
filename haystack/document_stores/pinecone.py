@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Set, Union, List, Optional, Dict, Generator, Any
 
+import math
 import logging
 from itertools import islice
 
@@ -985,7 +986,9 @@ class PineconeDocumentStore(BaseDocumentStore):
                 id_values = list(set(id_values).intersection(set(filter_ids)))
             if len(id_values) > 0:
                 # Now we delete
-                self.pinecone_indexes[index].delete(ids=id_values, namespace=namespace)
+                for i in range(math.ceil(len(id_values) / 1000)):
+                    batch = id_values[i*1000:(i+1)*1000]
+                    self.pinecone_indexes[index].delete(ids=batch, namespace=namespace)
         if drop_ids:
             self.all_ids[index] = self.all_ids[index].difference(set(id_values))
 
